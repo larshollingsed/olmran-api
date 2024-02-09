@@ -77,6 +77,7 @@ app.get("/", (req, res) => {
   if (combos) {
     // figure out a better way to display same item from multiple mobs
     const result = getCombinations(['slot', 'spell', 'item'], 8, matches);
+    console.log(sortBy, order, matches.length, result)
     res.send(_.orderBy(result, sortBy, order));
   }
   res.send(_.orderBy(matches, sortBy, order));
