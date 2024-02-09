@@ -7,6 +7,33 @@ const app = express();
 app.use(express.json())
 app.use(cors())
 
+const getCombinations = (properties, size, items)  => {
+  const result = [];
+  function generate(combination, index) {
+    if (combination.length >= size) {
+      result.push(combination);
+    } else {
+      for (let i=index; i<items.length; i++) {
+        const item = items[i];
+
+        const totalJewels = combination.filter(i => i.slot === 'jewel').length
+        let props = [...properties];
+        if (totalJewels < 2 && item.slot === 'jewel') { props = props.filter(p => p !== 'slot') }
+
+        if (props.every(prop =>
+          combination.every(prevItem => {
+            return prevItem[prop] != item[prop]
+          })
+        )) {
+          generate([...combination, item], i+1);
+        }
+      }
+    }
+  }
+  generate([], 0);
+  return result;
+};
+
 app.get("/", (req, res) => {
   const gear = data.gear;
   const filterWithPredicates = (list, predicates) => (
@@ -14,7 +41,7 @@ app.get("/", (req, res) => {
       Object.values(predicates).every(predicate => predicate(item))
     ))
   );
-  const { minLevel, maxLevel, realms, slots, effects, types, sigils, sortBy, order } = req.query;
+  const { minLevel, maxLevel, realms, slots, effects, types, sigils, sortBy, order, combos } = req.query;
   console.log('tacocat', realms, req.query)
 
   const predicates = {
@@ -38,7 +65,7 @@ app.get("/", (req, res) => {
   }
 
   if (types && types.length > 0) {
-    predicates.type = (record) => workingTypes.includes(record.type);
+    predicates.type = (record) => types.includes(record.type);
   }
 
   if (sigils && sigils.length > 0) {
@@ -46,6 +73,12 @@ app.get("/", (req, res) => {
   }
 
   const matches = filterWithPredicates(gear, predicates);
+
+  if (combos) {
+    // figure out a better way to display same item from multiple mobs
+    const result = getCombinations(['slot', 'spell', 'item'], 8, matches);
+    res.send(_.orderBy(result, sortBy, order));
+  }
   res.send(_.orderBy(matches, sortBy, order));
 });
 
